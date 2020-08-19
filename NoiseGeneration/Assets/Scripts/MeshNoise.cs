@@ -8,9 +8,7 @@ public class MeshNoise : MonoBehaviour
     public int xSize = 20;
     public int zSize = 20;
 
-    public float scale = 20f;
-    public float offsetX = 100f;
-    public float offsetY = 100f;
+    public List<NoiseLayer> noiseLayers = new List<NoiseLayer>();
 
     private Mesh mesh;
     private Vector3[] vertices;
@@ -25,6 +23,11 @@ public class MeshNoise : MonoBehaviour
         GetComponent<MeshFilter>().mesh = mesh;
 
         _noise = new NoiseGenerator();
+
+        foreach(var layer in noiseLayers)
+        {
+            layer.SetNoiseGenerator(_noise);
+        }
 
         BuildMesh();
     }
@@ -44,7 +47,13 @@ public class MeshNoise : MonoBehaviour
         {
             for (var x = 0; x <= xSize; x++)
             {
-                vertices[i] = new Vector3(x, GenerateHeight(x, z), z);
+                var elevation = 0f;
+                foreach (var layer in noiseLayers)
+                {
+                    elevation += layer.Noise(x, z);
+                }
+
+                vertices[i] = new Vector3(x, elevation, z);
                 i++;
             }
         }
@@ -72,14 +81,6 @@ public class MeshNoise : MonoBehaviour
         }
     }
 
-    private float GenerateHeight(float x, float y)
-    {
-        var xCoord = (float)x / xSize * scale + offsetX;
-        var yCoord = (float)y / zSize * scale + offsetY;
-
-        return _noise.Generate(xCoord, yCoord);
-    }
-
     private void UpdateMesh()
     {
         mesh.Clear();
@@ -93,6 +94,12 @@ public class MeshNoise : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        foreach(var layer in noiseLayers)
+        {
+            layer.offset.x -= Time.deltaTime * 1.2f;
+            layer.offset.y -= Time.deltaTime * 1.2f;
+        }
+
         BuildMesh();
     }
 }
